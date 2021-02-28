@@ -51,9 +51,7 @@ public class lesson1 {
     }
 
     static boolean checkPositiveOrNegative1(int a) {
-        if (a < 0)
-            return true;
-        return false;
+            return a < 0;
     }
 
     static void greetingName(String name) {
