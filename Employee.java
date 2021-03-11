@@ -24,8 +24,8 @@ public class Employee {
     }
 
     public void info() {
-        System.out.println("name: " + name + "position: " + position +
-                "email: " + email + "tel: " + tel + "salary: "+ salary +
-                "age: " + age);
+        System.out.println("name: " + name + ", position: " + position +
+                ", email: " + email + ", tel: " + tel + ", salary: "+ salary +
+                ", age: " + age + ".");
     }
 }
