@@ -12,6 +12,6 @@ public abstract class Animal {
     public abstract void run(int runDistance);
 
     public static void summary() {
-        System.out.printf("Animal summary is %s %n", animalCount);
+        System.out.printf("Total animal - %s.%n", animalCount);
     }
 }

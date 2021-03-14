@@ -21,8 +21,8 @@ public class Dog extends Animal {
         System.out.printf("Dog #%s. Name: %s %n", id, name);
     }
 
-    public void dogSummary() {
-        System.out.printf("%s - total number of dogs", dogCount);
+    public static void summary() {
+        System.out.printf("Total dot - %s.%n", dogCount);
     }
 
     @Override

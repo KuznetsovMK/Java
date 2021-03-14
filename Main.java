@@ -24,6 +24,8 @@ public class Main {
         }
 
         Animal.summary();
+        Dog.summary();
+        Cat.summary();
 
         catArray[0].run(50);
         catArray[1].run(-350);

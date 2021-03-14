@@ -21,6 +21,10 @@ public class Cat extends Animal {
         System.out.printf("Cat #%s. Name: %s %n", id, name);
     }
 
+    public static void summary() {
+        System.out.printf("Total cat - %s.%n", catCount);
+    }
+
     @Override
     public void run(int runDistance) {
         if (runDistance > 0 && runDistance <= this.runDistance)
