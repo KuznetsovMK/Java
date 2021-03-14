@@ -1,25 +1,24 @@
 package lesson6;
 
 public class Cat extends Animal {
-    private static int catId;
+    private static int catCount;
     private int runDistance = 200;
-    private int swimDistance = 0;
+    private int swimDistance;
     private String name;
     private int id;
 
     public Cat(String name) {
-        super();
         this.name = name;
-        this.id = getId();
+        this.id = getCatCount();
     }
 
-    public int getId() {
-        this.catId++;
-        return this.catId;
+    public int getCatCount() {
+        this.catCount++;
+        return this.catCount;
     }
 
     public void catInfo() {
-        System.out.printf("Id: %s. Cat %s %n", id, name);
+        System.out.printf("Cat #%s. Name: %s %n", id, name);
     }
 
     @Override

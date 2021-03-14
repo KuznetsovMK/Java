@@ -1,10 +1,10 @@
 package lesson6;
 
 public abstract class Animal {
-    private static int animalId = 0;
+    private static int animalCount;
 
     public Animal() {
-        animalId++;
+        animalCount++;
     }
 
     public abstract void swim(int swimDistance);
@@ -12,6 +12,6 @@ public abstract class Animal {
     public abstract void run(int runDistance);
 
     public static void summary() {
-        System.out.printf("Animal summary is %s %n", animalId);
+        System.out.printf("Animal summary is %s %n", animalCount);
     }
 }

@@ -8,18 +8,17 @@ public class Dog extends Animal {
     private int id;
 
     public Dog(String name) {
-        super();
         this.name = name;
-        this.id = getId();
+        this.id = getDogCount();
     }
 
-    public int getId() {
+    public int getDogCount() {
         this.dogCount++;
         return this.dogCount;
     }
 
     public void dogInfo() {
-        System.out.printf("Id: %s. Dog %s %n", id, name);
+        System.out.printf("Dog #%s. Name: %s %n", id, name);
     }
 
     public void dogSummary() {
