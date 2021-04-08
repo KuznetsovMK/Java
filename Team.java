@@ -11,6 +11,7 @@ public class Team {
     public class TeamMember {
         private String name;
         private int height;
+        private int length;
         private boolean isOut;
 
         public String getName() {
@@ -21,6 +22,10 @@ public class Team {
             return height;
         }
 
+        public int getLength() {
+            return length;
+        }
+
         public boolean getIsOut() {
             return isOut;
         }
@@ -29,18 +34,19 @@ public class Team {
             isOut = out;
         }
 
-        public TeamMember(String name, int height) {
+        public TeamMember(String name, int height, int length) {
             this.name = name;
             this.height = height;
+            this.length = length;
             isOut = false;
         }
     }
 
     TeamMember[] teamMembers = {
-            new TeamMember("Yulia", 7),
-            new TeamMember("Nadezda", 3),
-            new TeamMember("Evgeniya", 5),
-            new TeamMember("Tatyana", 5)
+            new TeamMember("Yulia", 5, 16),
+            new TeamMember("Nadezda", 6, 15),
+            new TeamMember("Evgeniya", 7, 14),
+            new TeamMember("Tatyana", 4, 17)
     };
 
     public void info() {
@@ -62,7 +68,7 @@ public class Team {
         for (TeamMember teamMember : teamMembers) {
             if (!teamMember.isOut) {
                 i++;
-                System.out.printf("#%s: %s - test passed", i, teamMember.name);
+                System.out.printf("#%s: %s - test passed. \n", i, teamMember.name);
             }
         }
         if (i == 0)
