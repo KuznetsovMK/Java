@@ -12,10 +12,12 @@ public class Controller {
     @FXML
     TextField bottomTextField;
 
+
     public void btnOneClickAction (ActionEvent e) {
         if (!bottomTextField.getText().equals("")) {
             mainTextArea.appendText(bottomTextField.getText() + "\n");
             bottomTextField.clear();
+            bottomTextField.requestFocus();
         }
 
     }
