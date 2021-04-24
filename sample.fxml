@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox fx:controller="com.geekbrais.chat.client.Controller"
+      xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1">
+    <TextArea fx:id="mainTextArea" editable="false" VBox.vgrow="ALWAYS"/>
+    <HBox>
+        <TextField fx:id="bottomTextField" HBox.hgrow="ALWAYS" promptText="Enter text"
+                   onAction="#btnEnterAction">
+            <HBox.margin>
+                <Insets bottom="5.0" left="5.0" top="5.0"/>
+            </HBox.margin>
+        </TextField>
+        <Button maxWidth="116.0" minWidth="80.0" mnemonicParsing="false" prefHeight="25.0"
+                prefWidth="116.0" text="Send" HBox.hgrow="ALWAYS" onAction="#btnOneClickAction">
+            <HBox.margin>
+                <Insets bottom="5.0" right="5.0" top="5.0"/>
+            </HBox.margin>
+        </Button>
+    </HBox>
+</VBox>
