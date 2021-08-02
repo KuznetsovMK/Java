@@ -1,5 +1,7 @@
 package Task1;
 
+import java.util.Arrays;
+
 public class Task1 {
     public static void main(String[] args) {
         int n = Integer.parseInt(args[0]);
@@ -9,6 +11,7 @@ public class Task1 {
     }
 
     public static String loopArray(int n, int m) {
+        System.out.println(n + " " + m);
         int[] arr = new int[n];
         for (int i = 0; i < n; i++) {
             arr[i] = i + 1;
