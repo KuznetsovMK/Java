@@ -1,0 +1,7 @@
+Клиент archi подлючился 
+Клиент archi отключился 
+archi: привет
+archi: при
+Клиент archi подлючился 
+tor: ghbdt
+archi: привет
