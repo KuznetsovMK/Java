@@ -97,6 +97,7 @@ public class Controller {
                         //login_ok Alex
                         if (msg.startsWith("/login_ok ")) {
                             setUsername(msg.split("\\s")[1]);
+                            readSomeLogLines();
                             break;
                         }
 
@@ -165,6 +166,33 @@ public class Controller {
     public void writeToFile(String msg) {
         try (BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(logFile, true))) {
             bufferedWriter.write(msg);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void readSomeLogLines() {
+
+        String str = "";
+        int totalLines = 0;
+        int count = 0;
+        int a = 100;
+
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(logFile))) {
+            while ((bufferedReader.readLine()) != null) {
+                totalLines++;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(logFile))) {
+            while ((str = bufferedReader.readLine()) != null) {
+                if (count >= (totalLines - a)) {
+                    msgArea.appendText(str + "\n");
+                }
+                count++;
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
