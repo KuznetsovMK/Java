@@ -38,7 +38,7 @@ public class Car implements Runnable {
             System.out.println(this.name + " готов");
             cyclicBarrier.await();
             cdlStart.countDown();
-            Thread.sleep(500);
+            Thread.sleep(10);
         } catch (Exception e) {
             e.printStackTrace();
         }
