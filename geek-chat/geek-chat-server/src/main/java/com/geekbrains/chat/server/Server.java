@@ -8,11 +8,14 @@ import java.net.Socket;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server {
     private int port;
     private List<ClientHandler> clients;
     private static final Logger log = org.apache.logging.log4j.LogManager.getLogger(Server.class);
+    private static final ExecutorService service = Executors.newCachedThreadPool();
 
 
     public Server(int port) {
@@ -32,12 +35,14 @@ public class Server {
                 Socket socket = serverSocket.accept();
                 log.info("Клиент подключился");
 //                System.out.println("Клиент подключился");
-                new ClientHandler(socket, this);
+                service.execute( new ClientHandler(socket, this));
+//                new ClientHandler(socket, this);
             }
         } catch (IOException | SQLException e) {
             e.printStackTrace();
         } finally {
             UsersRegistry.disconnect();
+            service.shutdown();
         }
     }
 

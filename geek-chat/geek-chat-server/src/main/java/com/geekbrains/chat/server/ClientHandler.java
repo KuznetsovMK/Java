@@ -1,24 +1,41 @@
 package com.geekbrains.chat.server;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.sql.SQLException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-public class ClientHandler {
-
+public class ClientHandler implements Runnable {
     private Socket socket;
+
     private Server server;
     private DataInputStream in;
     private DataOutputStream out;
     private String username;
-    private static final ExecutorService service = Executors.newCachedThreadPool();
+
+
+    @Override
+    public void run() {
+        try {
+            //цикл авторизации и общения
+            while (true) {
+                String msg = in.readUTF();
+
+                if (msg.startsWith("/")) {
+                    executeCommand(msg);
+                    continue;
+                }
+                server.broadcastMessage(username + ": " + msg);
+//                    System.out.println(service.toString());
+            }
+        } catch (IOException | SQLException e) {
+            e.printStackTrace();
+        } finally {
+            disconnect();
+        }
+    }
+
 
     public ClientHandler(Socket socket, Server server) throws IOException {
 
@@ -48,25 +65,25 @@ public class ClientHandler {
 //        }).start();
 
 
-        service.execute(() -> {
-            try {
-                //цикл авторизации и общения
-                while (true) {
-                    String msg = in.readUTF();
-
-                    if (msg.startsWith("/")) {
-                        executeCommand(msg);
-                        continue;
-                    }
-                    server.broadcastMessage(username + ": " + msg);
-//                    System.out.println(service.toString());
-                }
-            } catch (IOException | SQLException e) {
-                e.printStackTrace();
-            } finally {
-                disconnect();
-            }
-        });
+////        service.execute(() -> {
+//            try {
+//                //цикл авторизации и общения
+//                while (true) {
+//                    String msg = in.readUTF();
+//
+//                    if (msg.startsWith("/")) {
+//                        executeCommand(msg);
+//                        continue;
+//                    }
+//                    server.broadcastMessage(username + ": " + msg);
+////                    System.out.println(service.toString());
+//                }
+//            } catch (IOException | SQLException e) {
+//                e.printStackTrace();
+//            } finally {
+//                disconnect();
+//            }
+////        });
 
     }
 
@@ -130,7 +147,7 @@ public class ClientHandler {
                 e.printStackTrace();
             }
         }
-        service.shutdown();
+//        service.shutdown();
     }
 
     public void sendMessage(String message) {
