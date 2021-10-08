@@ -3,32 +3,31 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<GridPane alignment="center" hgap="10" prefHeight="475.0" prefWidth="489.0" vgap="10"
-          xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Controller">
+<GridPane alignment="center" hgap="10" prefHeight="475.0" prefWidth="489.0" vgap="10" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Controller">
    <children>
       <VBox prefHeight="475.0" prefWidth="489.0" GridPane.hgrow="ALWAYS" GridPane.vgrow="ALWAYS">
          <children>
-            <HBox>
+            <HBox fx:id="loginPanel">
                <children>
-                  <TextField HBox.hgrow="ALWAYS" />
-                  <Button maxWidth="150.0" minWidth="150.0" mnemonicParsing="false" text="Button" />
+                  <TextField fx:id="usernameField" promptText="username" HBox.hgrow="ALWAYS" onAction="#login" />
+                  <Button maxWidth="150.0" minWidth="150.0" mnemonicParsing="false" onAction="#login" text="login" />
                </children>
             </HBox>
             <HBox VBox.vgrow="ALWAYS">
                <children>
-                  <TextArea prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS" />
+                  <TextArea fx:id="msgArea" editable="false" prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS" />
                   <VBox>
                      <children>
-                        <Button maxWidth="150.0" minWidth="150.0" mnemonicParsing="false" text="Button" />
-                        <ListView maxWidth="150.0" minWidth="150.0" VBox.vgrow="ALWAYS" />
+                        <Button fx:id="logout" managed="false" maxWidth="150.0" minWidth="150.0" mnemonicParsing="false" text="logout" visible="false" />
+                        <ListView fx:id="clientList" maxWidth="150.0" minWidth="150.0" VBox.vgrow="ALWAYS" />
                      </children>
                   </VBox>
                </children>
             </HBox>
-            <HBox>
+            <HBox fx:id="msgPanel" visible="false" managed="false">
                <children>
-                  <TextField HBox.hgrow="ALWAYS" />
-                  <Button maxWidth="150.0" minWidth="150.0" mnemonicParsing="false" text="Button" />
+                  <TextField fx:id="msgField" onAction="#sendMsg" promptText="message" HBox.hgrow="ALWAYS" />
+                  <Button  maxWidth="150.0" minWidth="150.0" mnemonicParsing="false" onAction="#sendMsg" text="Send" />
                </children>
             </HBox>
          </children>

@@ -28,4 +28,28 @@ public class Server {
             e.printStackTrace();
         }
     }
+
+    public synchronized void subscribe(ClientHandler clientHandler) {
+        clients.add(clientHandler);
+        broadcastMessage("Пользователь " + clientHandler.getUsername() + " Подключился. \n");
+        broadcastClientList();
+    }
+
+    public synchronized void broadcastMessage(String message) {
+        for (ClientHandler clientHandler : clients) {
+            clientHandler.sendMessage(message);
+        }
+    }
+
+    public void broadcastClientList() {
+        StringBuilder stringBuilder = new StringBuilder("/clients_list ");
+        for (ClientHandler clientHandler : clients) {
+            stringBuilder.append(clientHandler.getUsername()).append(" ");
+        }
+        stringBuilder.setLength(stringBuilder.length() - 1);
+        String clientsList = stringBuilder.toString();
+        for (ClientHandler clientHandler : clients) {
+            clientHandler.sendMessage(clientsList);
+        }
+    }
 }
