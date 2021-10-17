@@ -1,8 +1,9 @@
 package com.geekbrains.io;
 
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.FileOutputStream;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
@@ -10,42 +11,50 @@ import java.util.Date;
 
 public class ChatHandler implements Runnable {
 
+    private static final int BUFFER_SIZE = 1024;
     private static int counter = 0;
     private final String userName;
     private final Server server;
     private final DataInputStream dis;
     private final DataOutputStream dos;
-//    private final InputStream is;
-//    private final OutputStream os;
     private final SimpleDateFormat format;
     private final Path root;
+    private Path clientDir;
+    private final byte[] buffer;
 
     public ChatHandler(Socket socket, Server server) throws Exception {
-        this.server = server;
-        counter++;
-        userName = "User#" + counter;
-        format = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
-        dis = new DataInputStream(socket.getInputStream());
-        dos = new DataOutputStream(socket.getOutputStream());
+        buffer = new byte[BUFFER_SIZE];
         root = Path.of("root");
         if (!Files.exists(root)) {
             Files.createDirectory(root);
         }
+
+        this.server = server;
+        counter++;
+        userName = "User_" + counter;
+        clientDir = root.resolve(userName);
+        if (!Files.exists(clientDir)) {
+            Files.createDirectory(clientDir);
+        }
+        format = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
+        dis = new DataInputStream(socket.getInputStream());
+        dos = new DataOutputStream(socket.getOutputStream());
     }
 
     @Override
     public void run() {
         try {
             while (true) {
-                String msg = dis.readUTF();
-                File file = new File(msg.split(" ")[0]);
-                Writer out = new BufferedWriter(
-                        new OutputStreamWriter(
-                                new FileOutputStream(String.valueOf(root.resolve("user1").resolve(String.valueOf(file))))
-                        )
-                );
-                out.write(msg.split(" ", 3)[2]);
-                out.close();
+                String fileName = dis.readUTF();
+                long size = dis.readLong();
+                Path path = clientDir.resolve(fileName);
+                try (FileOutputStream fos = new FileOutputStream(path.toFile())) {
+                    for (int i = 0; i < (size + BUFFER_SIZE - 1) / BUFFER_SIZE; i++) {
+                        int read = dis.read(buffer);
+                        fos.write(buffer, 0, read);
+                    }
+                }
+                responseOk();
             }
         } catch (Exception e) {
             System.err.println("Connection was broken");
@@ -63,6 +72,11 @@ public class ChatHandler implements Runnable {
 
     public void sendMessage(String msg) throws Exception {
         dos.writeUTF(msg);
+        dos.flush();
+    }
+
+    private void responseOk() throws Exception {
+        dos.writeUTF("File received!");
         dos.flush();
     }
 }
