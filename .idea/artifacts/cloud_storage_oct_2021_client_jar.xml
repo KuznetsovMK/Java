@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="cloud-storage-oct-2021-client:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/cloud_storage_oct_2021_client_jar</output-path>
+    <root id="archive" name="cloud-storage-oct-2021-client.jar">
+      <element id="module-output" name="cloud-storage-oct-2021-client" />
+    </root>
+  </artifact>
+</component>
