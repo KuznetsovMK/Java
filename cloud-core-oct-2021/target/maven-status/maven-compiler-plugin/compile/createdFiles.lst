@@ -1,0 +1,16 @@
+com\geekbrains\model\CreateNewFolder.class
+com\geekbrains\model\FileMessageToLocal.class
+com\geekbrains\model\LoginOK.class
+com\geekbrains\model\AbstractMessage.class
+com\geekbrains\model\CurrentUserPath.class
+com\geekbrains\model\FileMessageToServer.class
+com\geekbrains\model\FileRequestToLocal.class
+com\geekbrains\model\UserLogin.class
+com\geekbrains\model\ListMessage.class
+com\geekbrains\model\LocalListMessage.class
+com\geekbrains\model\Operation.class
+com\geekbrains\model\RenameFile.class
+com\geekbrains\model\DeleteFile.class
+com\geekbrains\model\FileRequestToServer.class
+com\geekbrains\model\UserRegistry.class
+com\geekbrains\model\SystemMessage.class

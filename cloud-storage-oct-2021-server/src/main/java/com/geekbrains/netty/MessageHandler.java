@@ -1,13 +1,14 @@
 package com.geekbrains.netty;
 
-import com.geekbrains.model.AbstractMessage;
-import com.geekbrains.model.Operation;
-import com.geekbrains.model.UserNavigator;
+import com.geekbrains.model.*;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,125 +16,157 @@ import java.nio.file.Paths;
 @Slf4j
 public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage> {
 
+    private Path serverClientDir;
+    private byte[] buffer;
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) {
+        buffer = new byte[8192];
+    }
+
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, AbstractMessage msg) throws Exception {
 
-        //0 - path, 1 - cmd, 2 - operation, 3 - filename
-        Path path = Paths.get(msg.getMessage().trim().split(" ")[0]);
-        String cmd = msg.getMessage().trim().split(" ")[1];
-        Operation operation = Operation.valueOf(msg.getMessage().trim().split(" ")[2]);
-        String fileName = msg.getMessage().trim().split(" ")[3];
+        switch (msg.getType()) {
 
-        UserNavigator userNavigator = new UserNavigator(path);
-        StringBuilder stringBuilder = new StringBuilder();
+            case FILE_REQUEST_TO_LOCAL:
 
-        switch (operation) {
-            case LOCAL_FILE_INFO:
-                Path localFilePath = Paths.get("localroot").resolve(fileName);
-                Long fileSize = Files.size(localFilePath);
-
-                stringBuilder = new StringBuilder()
-                        .append("localFileInfo")
-                        .append("\n")
-                        .append("File name: " + fileName + " Size: " + fileSize + " bytes");
-
-                msg.setMessage(stringBuilder.toString());
+                sendFileToLocal((FileRequestToLocal) msg, ctx);
                 break;
 
-            case SERVER_FILE_INFO:
-                Path srvFilePath = path.resolve(fileName);
+            case FILE_MESSAGE_TO_SERVER:
 
-                if (srvFilePath.toFile().exists()) {
-                    fileSize = Files.size(srvFilePath);
+                FileMessageToServer fileMessageToServer = (FileMessageToServer) msg;
+                Path file = serverClientDir.resolve(fileMessageToServer.getName());
 
-                    stringBuilder
-                            .append("serverFileInfo")
-                            .append("\n")
-                            .append("File name: " + fileName + " Size: " + fileSize + " bytes");
+                if (fileMessageToServer.isFirstButch()) {
+                    Files.deleteIfExists(file);
                 }
-                msg.setMessage(stringBuilder.toString());
-                break;
 
-            case DELETE:
-                srvFilePath = path.resolve(fileName);
-
-                if (srvFilePath.toFile().exists()) {
-                    Files.delete(srvFilePath);
+                try (FileOutputStream os = new FileOutputStream(file.toFile(), true)) {
+                    os.write(fileMessageToServer.getBytes(), 0, fileMessageToServer.getEndByteNum());
                 }
-                msg = msgBuilder(msg, userNavigator);
+
+                if (fileMessageToServer.isFinishBatch()) {
+                    ctx.writeAndFlush(new ListMessage(serverClientDir));
+                }
                 break;
 
-            case TO_LOCAL:
-                srvFilePath = path.resolve(fileName);
-                localFilePath = Paths.get("localroot").resolve(fileName);
+            case DELETE_FILE:
 
-                InputStream is = new FileInputStream(String.valueOf(srvFilePath));
-                OutputStream os = new FileOutputStream(String.valueOf(localFilePath));
+                //Не удаляет папку, если в текущей сессии был переход в эту папку.
 
-                byte[] buffer = new byte[8129];
-                int readBytes;
-                while (true) {
-                    readBytes = is.read(buffer);
-                    if (readBytes == -1) {
-                        break;
+                DeleteFile deleteFile = (DeleteFile) msg;
+                Path dirPath = serverClientDir;
+                File executionFile = new File(String.valueOf(dirPath));
+
+
+                if (executionFile.exists()) {
+                    Path executionFilePath = serverClientDir.resolve(deleteFile.getName());
+
+                    try {
+                        Files.delete(executionFilePath);
+                    } catch (DirectoryNotEmptyException e) {
+                        ctx.writeAndFlush(new SystemMessage("Dir " + deleteFile.getName() + " is not empty!"));
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                    os.write(buffer, 0, readBytes);
-                }
-                is.close();
-                os.close();
 
-                msg = msgBuilder(msg, userNavigator);
+
+                }
+                ctx.writeAndFlush(new ListMessage(serverClientDir));
                 break;
 
-            case TO_SERVER:
-                 srvFilePath = path.resolve(fileName);
-                 localFilePath = Paths.get("localroot").resolve(fileName);
+            case RENAME_FILE:
 
-                if (!srvFilePath.toFile().exists()) {
-                    Files.createFile(srvFilePath);
+                RenameFile renameFile = (RenameFile) msg;
+                Path newFilePath = serverClientDir.resolve(renameFile.getNewName());
+                Path oldFilePath = serverClientDir.resolve(renameFile.getOldName());
+
+                File newFileName = new File(String.valueOf(newFilePath));
+                File oldFileName = new File(String.valueOf(oldFilePath));
+
+                if (oldFileName.renameTo(newFileName)) {
+                } else {
+                    ctx.writeAndFlush(new SystemMessage("Filename " + renameFile.getNewName() + " already exist"));
                 }
+                ctx.writeAndFlush(new ListMessage(serverClientDir));
+                break;
 
-                 is = new FileInputStream(String.valueOf(localFilePath));
-                 os = new FileOutputStream(String.valueOf(srvFilePath));
+            case CHANGE_PATH:
 
-                buffer = new byte[8129];
-                while (true) {
-                    readBytes = is.read(buffer);
-                    if (readBytes == -1) {
-                        break;
+                CurrentUserPath currentUserPath = (CurrentUserPath) msg;
+                serverClientDir = Paths.get(currentUserPath.getPath());
+                ctx.writeAndFlush(new ListMessage(serverClientDir));
+                break;
+
+            case CREATE_FOLDER:
+
+                ctx.writeAndFlush(new ListMessage(serverClientDir));
+                break;
+
+            case REGISTRATION:
+
+                UserRegistry userRegistry = (UserRegistry) msg;
+
+                if (!DataBaseQuery.isRegistered(userRegistry.getLogin())) {
+
+                    DataBaseQuery.addNewUser(userRegistry.getLogin(), userRegistry.getPassword());
+                    serverClientDir = Paths.get(userRegistry.getLogin());
+                    Files.createDirectory(serverClientDir);
+                    ctx.writeAndFlush(new ListMessage(serverClientDir));
+                    ctx.writeAndFlush(new CurrentUserPath(serverClientDir.toString()));
+                    ctx.writeAndFlush(new LoginOK());
+                    ctx.writeAndFlush(new SystemMessage("Registration successfully!"));
+                } else {
+                    ctx.writeAndFlush(new SystemMessage("Login already is use!"));
+                }
+                break;
+
+            case LOGIN:
+
+                UserLogin userLogin = (UserLogin) msg;
+
+                if (DataBaseQuery.checkLogin(userLogin.getLogin(), userLogin.getPassword())) {
+
+                    serverClientDir = Paths.get(userLogin.getLogin());
+
+                    if (!Files.isDirectory(serverClientDir)) {
+                        Files.createDirectory(serverClientDir);
                     }
-                    os.write(buffer, 0, readBytes);
+                    ctx.writeAndFlush(new ListMessage(serverClientDir));
+                    ctx.writeAndFlush(new CurrentUserPath(serverClientDir.toString()));
+                    ctx.writeAndFlush(new LoginOK());
+                    ctx.writeAndFlush(new SystemMessage("Login OK!"));
+                } else {
+                    ctx.writeAndFlush(new SystemMessage("Login fail!"));
                 }
-
-                msg = msgBuilder(msg, userNavigator);
-                is.close();
-                os.close();
                 break;
         }
-
         ctx.writeAndFlush(msg);
     }
 
-    public AbstractMessage msgBuilder(AbstractMessage msg, UserNavigator userNavigator) {
-        File file = new File(String.valueOf(userNavigator.getCurrentPath()));
-        String[] fileList = file.list();
+    private void sendFileToLocal(FileRequestToLocal msg, ChannelHandlerContext ctx) throws Exception {
 
-        StringBuilder stringBuilder = new StringBuilder()
-                .append(userNavigator.getCurrentPath())
-                .append("\n").append("..").append("\n");
+        boolean isFirstButch = true;
+        Path filePath = serverClientDir.resolve(msg.getName());
+        long size = Files.size(filePath);
 
-        if (fileList != null) {
-            for (String s : fileList) {
-                stringBuilder.append(s).append("\n");
+        try (FileInputStream is = new FileInputStream(serverClientDir.resolve(msg.getName()).toFile())) {
+
+            int read;
+            while ((read = is.read(buffer)) != -1) {
+
+                FileMessageToLocal message = new FileMessageToLocal(filePath.getFileName().toString(),
+                        size, buffer, isFirstButch, read, is.available() <= 0);
+                ctx.writeAndFlush(message);
+                isFirstButch = false;
             }
+        } catch (Exception e) {
+//            log.error("e:", e);
         }
-
-        msg.setMessage(stringBuilder.toString().trim());
-        return msg;
     }
-
-
 }
 
 

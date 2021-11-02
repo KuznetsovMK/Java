@@ -19,8 +19,10 @@ public class Server {
         EventLoopGroup auth = new NioEventLoopGroup(1);
         EventLoopGroup worker = new NioEventLoopGroup();
 
+
         try {
             ServerBootstrap bootstrap = new ServerBootstrap();
+            DataBaseQuery.connect();
             bootstrap.group(auth, worker)
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
@@ -41,6 +43,7 @@ public class Server {
         } finally {
             auth.shutdownGracefully();
             worker.shutdownGracefully();
+            DataBaseQuery.disconnect();
         }
     }
 

@@ -4,23 +4,14 @@ import java.io.Serializable;
 
 public class AbstractMessage implements Serializable {
 
-    private String message;
+    private Operation type;
 
-    public AbstractMessage(String message) {
-
-        this.message = message;
+    protected void setType(Operation type) {
+        this.type = type;
     }
 
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public void add(String message) {
-        this.message = this.message + " " + message;
+    public Operation getType() {
+        return type;
     }
 
 }
