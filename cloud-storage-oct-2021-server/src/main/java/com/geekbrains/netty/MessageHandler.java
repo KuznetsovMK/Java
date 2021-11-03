@@ -8,10 +8,15 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage> {
@@ -55,26 +60,25 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
 
             case DELETE_FILE:
 
-                //Не удаляет папку, если в текущей сессии был переход в эту папку.
+                //Не удаляет папку, если в текущей сессии был переход в нее.
 
                 DeleteFile deleteFile = (DeleteFile) msg;
-                Path dirPath = serverClientDir;
-                File executionFile = new File(String.valueOf(dirPath));
+                Path executionFilePath = serverClientDir.resolve(deleteFile.getName());
 
-
-                if (executionFile.exists()) {
-                    Path executionFilePath = serverClientDir.resolve(deleteFile.getName());
-
+                if (executionFilePath.toFile().exists()) {
                     try {
+
+                        if (executionFilePath.toFile().isDirectory()) {
+                            serverClientDir = clearFolder(executionFilePath);
+                        }
                         Files.delete(executionFilePath);
-                    } catch (DirectoryNotEmptyException e) {
-                        ctx.writeAndFlush(new SystemMessage("Dir " + deleteFile.getName() + " is not empty!"));
+
                     } catch (Exception e) {
                         e.printStackTrace();
+                        ctx.writeAndFlush(new SystemMessage("Dir " + deleteFile.getName() + " будет удалена после завершения работы сервера!"));
                     }
-
-
                 }
+
                 ctx.writeAndFlush(new ListMessage(serverClientDir));
                 break;
 
@@ -166,6 +170,18 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
         } catch (Exception e) {
 //            log.error("e:", e);
         }
+    }
+
+    private Path clearFolder(Path dir) throws IOException {
+
+        File[] files = dir.toFile().listFiles();
+        for (File file : files) {
+            if (file.isDirectory()) {
+                serverClientDir = clearFolder(Paths.get(String.valueOf(file)));
+            }
+            Files.delete(Paths.get(String.valueOf(file)));
+        }
+        return dir.getParent();
     }
 }
 

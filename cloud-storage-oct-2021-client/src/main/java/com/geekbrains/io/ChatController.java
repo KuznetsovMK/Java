@@ -93,6 +93,8 @@ public class ChatController implements Initializable {
 
                 ListMessage listMessage = (ListMessage) msg;
 
+                System.out.println(listMessage.getFiles().toString());
+
                 Platform.runLater(() -> {
                     listView.getItems().clear();
                     listView.getItems().addAll(listMessage.getFiles());
