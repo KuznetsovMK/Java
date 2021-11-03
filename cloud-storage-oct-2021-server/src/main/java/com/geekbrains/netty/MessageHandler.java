@@ -32,6 +32,7 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, AbstractMessage msg) throws Exception {
+        log.debug("Read: {}", msg);
 
         switch (msg.getType()) {
 
@@ -55,6 +56,7 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
 
                 if (fileMessageToServer.isFinishBatch()) {
                     ctx.writeAndFlush(new ListMessage(serverClientDir));
+                    ctx.writeAndFlush(new SystemMessage("Upload successfully!"));
                 }
                 break;
 

@@ -10,6 +10,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -22,6 +23,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ResourceBundle;
 
+
+@Slf4j
 public class ChatController implements Initializable {
 
 
@@ -71,6 +74,7 @@ public class ChatController implements Initializable {
                 try {
                     while (true) {
                         AbstractMessage message = (AbstractMessage) dis.readObject();
+                        log.debug("1Start processing {}", message);
                         checkMsg(message);
                     }
                 } catch (Exception e) {
@@ -86,14 +90,13 @@ public class ChatController implements Initializable {
     }
 
     private void checkMsg(AbstractMessage msg) throws Exception {
+        log.debug("checkMsg {}", msg);
 
         switch (msg.getType()) {
 
             case SERVER_LIST_MESSAGE:
 
                 ListMessage listMessage = (ListMessage) msg;
-
-                System.out.println(listMessage.getFiles().toString());
 
                 Platform.runLater(() -> {
                     listView.getItems().clear();
@@ -128,6 +131,8 @@ public class ChatController implements Initializable {
 
                     dos.writeObject(new LocalListMessage(localUserPath));
                     dos.flush();
+                    input.clear();
+                    input.setText("Download successfully!");
                 }
                 break;
 
