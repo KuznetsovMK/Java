@@ -43,6 +43,7 @@ public class ChatController implements Initializable {
     public Button deleteButton;
     public Button backButton;
     public Button newFolder;
+    private Socket socket;
     private ObjectDecoderInputStream dis;
     private ObjectEncoderOutputStream dos;
     private Path localUserPath;
@@ -52,7 +53,7 @@ public class ChatController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
 
         try {
-            Socket socket = new Socket("localhost", 8189);
+            socket = new Socket("localhost", 8189);
             dos = new ObjectEncoderOutputStream(socket.getOutputStream());
             dis = new ObjectDecoderInputStream(socket.getInputStream());
             System.out.println("OK");
@@ -74,18 +75,20 @@ public class ChatController implements Initializable {
                 try {
                     while (true) {
                         AbstractMessage message = (AbstractMessage) dis.readObject();
-                        log.debug("1Start processing {}", message);
                         checkMsg(message);
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    log.error("e:", e);
+                } finally {
+                    disconnect();
                 }
             });
 
             readThread.setDaemon(true);
             readThread.start();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("e:", e);
+//            e.printStackTrace();
         }
     }
 
@@ -102,6 +105,10 @@ public class ChatController implements Initializable {
                     listView.getItems().clear();
                     listView.getItems().addAll(listMessage.getFiles());
                 });
+
+                serverCurrentPath = Paths.get(listMessage.getPathName());
+                curPathFiled.clear();
+                curPathFiled.setText(String.valueOf(serverCurrentPath));
                 break;
 
             case LOCAL_LIST_MESSAGE:
@@ -156,7 +163,7 @@ public class ChatController implements Initializable {
                         isFirstButch = false;
                     }
                 } catch (Exception e) {
-//            log.error("e:", e);
+                    log.error("e:", e);
                 }
                 break;
 
@@ -170,44 +177,20 @@ public class ChatController implements Initializable {
                 }
                 break;
 
-            case CHANGE_PATH:
-
-                CurrentUserPath currentUserPath = (CurrentUserPath) msg;
-
-                if (currentUserPath.getPath() != null) {
-
-                    serverCurrentPath = Paths.get(currentUserPath.getPath());
-                    curPathFiled.clear();
-                    curPathFiled.setText(currentUserPath.getPath());
-                }
-                break;
-
             case LOGIN_OK:
 
-                if (serverCurrentPath == null) {
-
-                    listView.setEditable(false);
-                    localPathField.setVisible(false);
-                    userlistView.setVisible(false);
-                    toLocalButton.setVisible(false);
-                    toServerButton.setVisible(false);
-                    deleteButton.setVisible(false);
-                    backButton.setVisible(false);
-                    newFolder.setVisible(false);
-                } else {
-                    listView.setEditable(true);
-                    loginField.setVisible(false);
-                    passwordField.setVisible(false);
-                    loginButton.setVisible(false);
-                    registrationButton.setVisible(false);
-                    localPathField.setVisible(true);
-                    userlistView.setVisible(true);
-                    toLocalButton.setVisible(true);
-                    toServerButton.setVisible(true);
-                    deleteButton.setVisible(true);
-                    backButton.setVisible(true);
-                    newFolder.setVisible(true);
-                }
+                listView.setEditable(true);
+                loginField.setVisible(false);
+                passwordField.setVisible(false);
+                loginButton.setVisible(false);
+                registrationButton.setVisible(false);
+                localPathField.setVisible(true);
+                userlistView.setVisible(true);
+                toLocalButton.setVisible(true);
+                toServerButton.setVisible(true);
+                deleteButton.setVisible(true);
+                backButton.setVisible(true);
+                newFolder.setVisible(true);
                 break;
         }
     }
@@ -274,16 +257,17 @@ public class ChatController implements Initializable {
         langsSelectionModel.clearSelection();
     }
 
-    public void backButtonAction(ActionEvent actionEvent) throws IOException {
+    public void backButtonAction(ActionEvent actionEvent) throws Exception {
 
         if (serverCurrentPath.getParent() != null) {
-            dos.writeObject(new CurrentUserPath(serverCurrentPath.getParent().toString()));
+            dos.writeObject(new ListMessage(serverCurrentPath.getParent()));
             dos.flush();
         }
     }
 
     public void newFolder(ActionEvent actionEvent) throws IOException {
 
+//        dos.writeObject(new CreateNewFolder(serverCurrentPath.toString()));
         dos.writeObject(new CreateNewFolder(serverCurrentPath.toString()));
         dos.flush();
     }
@@ -292,6 +276,7 @@ public class ChatController implements Initializable {
 
         String login = loginField.getText();
         String pas = passwordField.getText();
+        passwordField.clear();
 
         dos.writeObject(new UserRegistry(login, pas));
         dos.flush();
@@ -307,7 +292,7 @@ public class ChatController implements Initializable {
         dos.flush();
     }
 
-    public void listViewMouseClicked(MouseEvent mouseEvent) throws IOException {
+    public void listViewMouseClicked(MouseEvent mouseEvent) throws Exception {
 
         if (mouseEvent.getClickCount() == 2) {
 
@@ -318,7 +303,7 @@ public class ChatController implements Initializable {
 
                 if (Files.isDirectory(serverCurrentPath.resolve(selectFileName))) {
                     serverCurrentPath = serverCurrentPath.resolve(selectFileName);
-                    dos.writeObject(new CurrentUserPath(serverCurrentPath.toString()));
+                    dos.writeObject(new ListMessage(serverCurrentPath));
                 } else {
                     dos.writeObject(new FileRequestToLocal(selectFileName));
                 }
@@ -327,7 +312,7 @@ public class ChatController implements Initializable {
         }
     }
 
-    public void keyPressed(KeyEvent keyEvent) throws IOException {
+    public void keyPressed(KeyEvent keyEvent) throws Exception {
 
         MultipleSelectionModel<String> langsSelectionModel = listView.getSelectionModel();
         String selectFileName = langsSelectionModel.selectedItemProperty().getValue();
@@ -338,7 +323,7 @@ public class ChatController implements Initializable {
 
                 if (Files.isDirectory(serverCurrentPath.resolve(selectFileName))) {
                     serverCurrentPath = serverCurrentPath.resolve(selectFileName);
-                    dos.writeObject(new CurrentUserPath(serverCurrentPath.toString()));
+                    dos.writeObject(new ListMessage(serverCurrentPath));
                     dos.flush();
                 }
             }
@@ -350,10 +335,59 @@ public class ChatController implements Initializable {
         if (keyEvent.getCode().toString().equals("BACK_SPACE")) {
 
             if (serverCurrentPath.getParent() != null) {
-                dos.writeObject(new CurrentUserPath(serverCurrentPath.getParent().toString()));
+                dos.writeObject(new ListMessage(serverCurrentPath.getParent()));
                 dos.flush();
             }
         }
         langsSelectionModel.clearSelection();
+    }
+
+    public void logout(ActionEvent actionEvent) throws Exception {
+        dos.writeObject(new ListMessage(null));
+        dos.flush();
+        serverCurrentPath = null;
+        listView.getItems().clear();
+        curPathFiled.clear();
+
+        loginField.setVisible(true);
+        passwordField.setVisible(true);
+        loginButton.setVisible(true);
+        registrationButton.setVisible(true);
+
+        listView.setEditable(false);
+
+        localPathField.setVisible(false);
+        userlistView.setVisible(false);
+        toLocalButton.setVisible(false);
+        toServerButton.setVisible(false);
+        deleteButton.setVisible(false);
+        backButton.setVisible(false);
+        newFolder.setVisible(false);
+    }
+
+    public void disconnect() {
+
+        if (dos != null) {
+            try {
+                dos.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if (dos != null) {
+            try {
+                dos.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (socket != null) {
+            try {
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

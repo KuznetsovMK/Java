@@ -9,14 +9,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.channels.SeekableByteChannel;
-import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
 
 @Slf4j
 public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage> {
@@ -32,7 +27,7 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, AbstractMessage msg) throws Exception {
-        log.debug("Read: {}", msg);
+        log.debug("msg: {}", msg);
 
         switch (msg.getType()) {
 
@@ -100,10 +95,10 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
                 ctx.writeAndFlush(new ListMessage(serverClientDir));
                 break;
 
-            case CHANGE_PATH:
+            case SERVER_LIST_MESSAGE:
 
-                CurrentUserPath currentUserPath = (CurrentUserPath) msg;
-                serverClientDir = Paths.get(currentUserPath.getPath());
+                ListMessage listMessage = (ListMessage) msg;
+                serverClientDir = Paths.get(listMessage.getPathName());
                 ctx.writeAndFlush(new ListMessage(serverClientDir));
                 break;
 
@@ -122,7 +117,6 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
                     serverClientDir = Paths.get(userRegistry.getLogin());
                     Files.createDirectory(serverClientDir);
                     ctx.writeAndFlush(new ListMessage(serverClientDir));
-                    ctx.writeAndFlush(new CurrentUserPath(serverClientDir.toString()));
                     ctx.writeAndFlush(new LoginOK());
                     ctx.writeAndFlush(new SystemMessage("Registration successfully!"));
                 } else {
@@ -142,12 +136,16 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
                         Files.createDirectory(serverClientDir);
                     }
                     ctx.writeAndFlush(new ListMessage(serverClientDir));
-                    ctx.writeAndFlush(new CurrentUserPath(serverClientDir.toString()));
                     ctx.writeAndFlush(new LoginOK());
                     ctx.writeAndFlush(new SystemMessage("Login OK!"));
                 } else {
                     ctx.writeAndFlush(new SystemMessage("Login fail!"));
                 }
+                break;
+
+            case EXIT_REQUEST:
+                serverClientDir = null;
+                ctx.writeAndFlush(new SystemMessage("bye bye!"));
                 break;
         }
         ctx.writeAndFlush(msg);
@@ -170,7 +168,7 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
                 isFirstButch = false;
             }
         } catch (Exception e) {
-//            log.error("e:", e);
+            log.error("e:", e);
         }
     }
 
