@@ -36,10 +36,10 @@ public class Server {
                         }
                     });
             ChannelFuture future = bootstrap.bind(8189).sync();
-//            log.debug("Server started...");
+            log.debug("Server started...");
             future.channel().closeFuture().sync(); // block
         } catch (Exception e) {
-//            log.error("error: ", e);
+            log.error("error: ", e);
         } finally {
             auth.shutdownGracefully();
             worker.shutdownGracefully();

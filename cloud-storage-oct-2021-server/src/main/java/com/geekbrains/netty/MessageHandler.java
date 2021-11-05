@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.nio.file.DirectoryNotEmptyException;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -27,6 +27,7 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, AbstractMessage msg) throws Exception {
+        log.debug("msg: {}", msg);
 
         switch (msg.getType()) {
 
@@ -50,31 +51,31 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
 
                 if (fileMessageToServer.isFinishBatch()) {
                     ctx.writeAndFlush(new ListMessage(serverClientDir));
+                    ctx.writeAndFlush(new SystemMessage("Upload successfully!"));
                 }
                 break;
 
             case DELETE_FILE:
 
-                //Не удаляет папку, если в текущей сессии был переход в эту папку.
+                //Не удаляет папку, если в текущей сессии был переход в нее.
 
                 DeleteFile deleteFile = (DeleteFile) msg;
-                Path dirPath = serverClientDir;
-                File executionFile = new File(String.valueOf(dirPath));
+                Path executionFilePath = serverClientDir.resolve(deleteFile.getName());
 
-
-                if (executionFile.exists()) {
-                    Path executionFilePath = serverClientDir.resolve(deleteFile.getName());
-
+                if (executionFilePath.toFile().exists()) {
                     try {
+
+                        if (executionFilePath.toFile().isDirectory()) {
+                            serverClientDir = clearFolder(executionFilePath);
+                        }
                         Files.delete(executionFilePath);
-                    } catch (DirectoryNotEmptyException e) {
-                        ctx.writeAndFlush(new SystemMessage("Dir " + deleteFile.getName() + " is not empty!"));
+
                     } catch (Exception e) {
                         e.printStackTrace();
+                        ctx.writeAndFlush(new SystemMessage("Dir " + deleteFile.getName() + " будет удалена после завершения работы сервера!"));
                     }
-
-
                 }
+
                 ctx.writeAndFlush(new ListMessage(serverClientDir));
                 break;
 
@@ -94,10 +95,10 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
                 ctx.writeAndFlush(new ListMessage(serverClientDir));
                 break;
 
-            case CHANGE_PATH:
+            case SERVER_LIST_MESSAGE:
 
-                CurrentUserPath currentUserPath = (CurrentUserPath) msg;
-                serverClientDir = Paths.get(currentUserPath.getPath());
+                ListMessage listMessage = (ListMessage) msg;
+                serverClientDir = Paths.get(listMessage.getPathName());
                 ctx.writeAndFlush(new ListMessage(serverClientDir));
                 break;
 
@@ -116,7 +117,6 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
                     serverClientDir = Paths.get(userRegistry.getLogin());
                     Files.createDirectory(serverClientDir);
                     ctx.writeAndFlush(new ListMessage(serverClientDir));
-                    ctx.writeAndFlush(new CurrentUserPath(serverClientDir.toString()));
                     ctx.writeAndFlush(new LoginOK());
                     ctx.writeAndFlush(new SystemMessage("Registration successfully!"));
                 } else {
@@ -136,12 +136,16 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
                         Files.createDirectory(serverClientDir);
                     }
                     ctx.writeAndFlush(new ListMessage(serverClientDir));
-                    ctx.writeAndFlush(new CurrentUserPath(serverClientDir.toString()));
                     ctx.writeAndFlush(new LoginOK());
                     ctx.writeAndFlush(new SystemMessage("Login OK!"));
                 } else {
                     ctx.writeAndFlush(new SystemMessage("Login fail!"));
                 }
+                break;
+
+            case EXIT_REQUEST:
+                serverClientDir = null;
+                ctx.writeAndFlush(new SystemMessage("bye bye!"));
                 break;
         }
         ctx.writeAndFlush(msg);
@@ -164,8 +168,20 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
                 isFirstButch = false;
             }
         } catch (Exception e) {
-//            log.error("e:", e);
+            log.error("e:", e);
         }
+    }
+
+    private Path clearFolder(Path dir) throws IOException {
+
+        File[] files = dir.toFile().listFiles();
+        for (File file : files) {
+            if (file.isDirectory()) {
+                serverClientDir = clearFolder(Paths.get(String.valueOf(file)));
+            }
+            Files.delete(Paths.get(String.valueOf(file)));
+        }
+        return dir.getParent();
     }
 }
 
