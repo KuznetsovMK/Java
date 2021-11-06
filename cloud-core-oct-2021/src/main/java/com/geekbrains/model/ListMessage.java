@@ -1,11 +1,9 @@
 package com.geekbrains.model;
 
-import lombok.extern.slf4j.Slf4j;
-
-import java.nio.file.Files;
+import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ListMessage extends AbstractMessage {
 
@@ -14,13 +12,22 @@ public class ListMessage extends AbstractMessage {
 
     public ListMessage(Path dir) throws Exception {
 
+        files = new ArrayList<>();
+
         if (dir != null) {
             setType(Operation.SERVER_LIST_MESSAGE);
 
-            files = Files.list(dir)
-                    .map(x -> x.getFileName().toString())
-                    .sorted()
-                    .collect(Collectors.toList());
+
+            for (int i = 0; i < 2; i++) {
+                for (File file : dir.toFile().listFiles()) {
+                    if (file.isDirectory() && i == 0) {
+                        files.add(file.getName());
+                    }
+                    if (!file.isDirectory() && i == 1) {
+                        files.add(file.getName());
+                    }
+                }
+            }
 
             pathName = String.valueOf(dir);
         } else {

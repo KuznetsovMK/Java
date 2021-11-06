@@ -77,6 +77,7 @@ public class MessageHandler extends SimpleChannelInboundHandler<AbstractMessage>
                 }
 
                 ctx.writeAndFlush(new ListMessage(serverClientDir));
+                ctx.writeAndFlush(new SystemMessage("File deleted!"));
                 break;
 
             case RENAME_FILE:
