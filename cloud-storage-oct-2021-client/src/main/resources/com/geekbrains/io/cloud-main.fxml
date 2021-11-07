@@ -1,36 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-
+<?import javafx.scene.layout.AnchorPane?>
 <AnchorPane prefHeight="562.0" prefWidth="745.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.geekbrains.io.ChatController">
-   <MenuBar>
-     <menus>
-       <Menu mnemonicParsing="false" text="Menu">
-         <items>
-           <MenuItem mnemonicParsing="false" onAction="#logout" text="Exit" />
-         </items>
-       </Menu>
-     </menus>
-   </MenuBar>
-   <TextField fx:id="localPathField" editable="false" layoutX="5.0" layoutY="71.0" prefHeight="27.0" prefWidth="363.0" visible="false" />
-   <TextField fx:id="curPathFiled" editable="false" layoutX="377.0" layoutY="71.0" prefHeight="27.0" prefWidth="363.0" />
-   <ListView fx:id="userlistView" layoutX="5.0" layoutY="98.0" onKeyPressed="#keyPressedLocalListView" prefHeight="435.0" prefWidth="363.0" visible="false" />
-<!--   <ListView fx:id="userlistView" layoutX="16.0" layoutY="41.0" onMouseClicked="#viewLocalFileInfo" prefHeight="448.0" prefWidth="312.0" />-->
-   <ListView fx:id="listView" layoutX="377.0" layoutY="98.0" onContextMenuRequested="#info" onEditCommit="#editCommit" onKeyPressed="#keyPressedServerListView" onMouseClicked="#listViewMouseClicked" prefHeight="435.0" prefWidth="363.0" />
-<!--   <ListView fx:id="listView" layoutX="418.0" layoutY="41.0" onMouseClicked="#viewServerFileInfo" prefHeight="448.0" prefWidth="312.0" />-->
-<!--   <TextField fx:id="userInput" layoutX="16.0" layoutY="489.0" prefHeight="36.0" prefWidth="312.0" visible="false" />-->
-   <TextField fx:id="input" editable="false" layoutY="538.0" prefHeight="25.0" prefWidth="745.0" />
-   <Button fx:id="addDirButton" layoutX="5.0" layoutY="31.0" mnemonicParsing="false" onAction="#chooseDir" visible="false" />
-   <Button fx:id="toServerButton" layoutX="50.0" layoutY="31.0" mnemonicParsing="false" onAction="#moveFileToServer" visible="false" />
-<!--   <Button fx:id="edit" focusTraversable="false" layoutX="348.0" layoutY="153.0" mnemonicParsing="false" onAction="#edit" prefHeight="25.0" prefWidth="52.0" text="edit" />-->
-   <Button fx:id="backButton" accessibleText="back" layoutX="377.0" layoutY="31.0" mnemonicParsing="false" onAction="#backButtonAction" visible="false" />
-   <Button fx:id="newFolderButton" layoutX="422.0" layoutY="31.0" mnemonicParsing="false" onAction="#newFolder" visible="false" />
-   <Button fx:id="toLocalButton" accessibleHelp="Download" accessibleRoleDescription="Download" accessibleText="Download" layoutX="467.0" layoutY="31.0" mnemonicParsing="false" onAction="#moveFileToLocal" visible="false" />
-   <Button fx:id="deleteButton" accessibleHelp="Del" accessibleText="Delete" layoutX="512.0" layoutY="31.0" mnemonicParsing="false" onAction="#deleteButtonAction" visible="false" />
-   <TextField fx:id="loginField" layoutX="126.0" layoutY="129.0" onAction="#login" promptText="Login" />
-   <PasswordField fx:id="passwordField" layoutX="126.0" layoutY="192.0" onAction="#login" promptText="Password" />
-   <Button fx:id="loginButton" layoutX="126.0" layoutY="253.0" mnemonicParsing="false" onAction="#login" text="Sign in" />
-   <Button fx:id="registrationButton" layoutX="190.0" layoutY="253.0" mnemonicParsing="false" onAction="#registration" prefHeight="25.0" prefWidth="86.0" text="Registration" />
+    <MenuBar>
+        <menus>
+            <Menu mnemonicParsing="false" text="Menu">
+                <items>
+                    <MenuItem mnemonicParsing="false" onAction="#logout" text="Exit" />
+                </items>
+            </Menu>
+        </menus>
+    </MenuBar>
+    <TextField fx:id="localPathField" editable="false" layoutX="5.0" layoutY="71.0" prefHeight="27.0" prefWidth="363.0" visible="false" />
+    <TextField fx:id="curPathFiled" editable="false" layoutX="377.0" layoutY="71.0" prefHeight="27.0" prefWidth="363.0" />
+    <ListView fx:id="userlistView" layoutX="5.0" layoutY="98.0" onKeyPressed="#keyPressedLocalListView" prefHeight="435.0" prefWidth="363.0" visible="false" />
+    <ListView fx:id="listView" layoutX="377.0" layoutY="98.0" onEditCommit="#editCommit" onKeyPressed="#keyPressedServerListView" onMouseClicked="#listViewMouseClicked" prefHeight="435.0" prefWidth="363.0">
+      <contextMenu>
+         <ContextMenu fx:id="contextMenu">
+           <items>
+             <MenuItem mnemonicParsing="false" text="Open" onAction="#contextMenuOpen"/>
+               <MenuItem mnemonicParsing="false" text="Download" />
+               <MenuItem mnemonicParsing="false" text="Delete" />
+           </items>
+         </ContextMenu>
+      </contextMenu></ListView>
+    <TextField fx:id="input" editable="false" layoutY="538.0" prefHeight="25.0" prefWidth="745.0" />
+    <Button fx:id="addDirButton" layoutX="5.0" layoutY="31.0" mnemonicParsing="false" onAction="#chooseDir" visible="false" />
+    <Button fx:id="toServerButton" layoutX="50.0" layoutY="31.0" mnemonicParsing="false" onAction="#moveFileToServer" visible="false" />
+    <Button fx:id="backButton" accessibleText="back" layoutX="377.0" layoutY="31.0" mnemonicParsing="false" onAction="#backButtonAction" visible="false" />
+    <Button fx:id="newFolderButton" layoutX="422.0" layoutY="31.0" mnemonicParsing="false" onAction="#newFolder" visible="false" />
+    <Button fx:id="toLocalButton" accessibleHelp="Download" accessibleRoleDescription="Download" accessibleText="Download" layoutX="467.0" layoutY="31.0" mnemonicParsing="false" onAction="#moveFileToLocal" visible="false" />
+    <Button fx:id="deleteButton" accessibleHelp="Del" accessibleText="Delete" layoutX="512.0" layoutY="31.0" mnemonicParsing="false" onAction="#deleteButtonAction" visible="false" />
+    <TextField fx:id="loginField" layoutX="126.0" layoutY="129.0" onAction="#login" promptText="Login" />
+    <PasswordField fx:id="passwordField" layoutX="126.0" layoutY="192.0" onAction="#login" promptText="Password" />
+    <Button fx:id="loginButton" layoutX="126.0" layoutY="253.0" mnemonicParsing="false" onAction="#login" text="Sign in" />
+    <Button fx:id="registrationButton" layoutX="190.0" layoutY="253.0" mnemonicParsing="false" onAction="#registration" prefHeight="25.0" prefWidth="86.0" text="Registration" />
 
 </AnchorPane>

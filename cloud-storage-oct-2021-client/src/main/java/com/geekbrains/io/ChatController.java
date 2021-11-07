@@ -6,13 +6,12 @@ import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
-import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.DirectoryChooser;
@@ -20,7 +19,6 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
 
-//import java.awt.*;
 import java.awt.*;
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,7 +29,6 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.ResourceBundle;
 
 
@@ -55,6 +52,7 @@ public class ChatController implements Initializable {
     public Button backButton;
     public Button newFolderButton;
     public Button addDirButton;
+    public ContextMenu contextMenu;
     private Socket socket;
     private ObjectDecoderInputStream dis;
     private ObjectEncoderOutputStream dos;
@@ -64,6 +62,7 @@ public class ChatController implements Initializable {
     private DirectoryChooser directoryChooser;
     private Stage primaryStage;
     private Desktop desktop;
+    private String selectFileName;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -91,6 +90,23 @@ public class ChatController implements Initializable {
             fileChooser = new FileChooser();
             directoryChooser = new DirectoryChooser();
             desktop = Desktop.getDesktop();
+
+//            cm = new ContextMenu();
+//            MenuItem menuItem1 = new MenuItem("Open");
+//            menuItem1.addEventHandler(MouseEvent.ANY, new EventHandler<MouseEvent>() {
+//                @Override
+//                public void handle(MouseEvent event) {
+//                    System.out.println(event.toString());
+//                    System.out.println("addEventHandler");
+//                    if (event.getButton() == MouseButton.PRIMARY) {
+//                        System.out.println("openFile()" );
+//                    }
+//
+//                }
+//            });
+//            MenuItem menuItem2 = new MenuItem("Delete");
+//            MenuItem menuItem3 = new MenuItem("Download");
+//            cm.getItems().addAll(menuItem1, menuItem2, menuItem3);
 
             socket = new Socket("localhost", 8189);
             dos = new ObjectEncoderOutputStream(socket.getOutputStream());
@@ -230,22 +246,22 @@ public class ChatController implements Initializable {
                 newFolderButton.setVisible(true);
                 addDirButton.setVisible(true);
                 break;
+
+            case OPEN_FILE:
+                OpenFile of = (OpenFile) msg;
+                openFile(new File(of.getPath()));
+                break;
         }
     }
 
     public void moveFileToServer(ActionEvent actionEvent) throws IOException {
 
-//        System.out.println(actionEvent.toString());
-//        MultipleSelectionModel<String> langsSelectionModel = userlistView.getSelectionModel();
-
         MultipleSelectionModel<String> langsSelectionModel = userlistView.getSelectionModel();
-        System.out.println(langsSelectionModel.selectedItemProperty().toString());
         String selectFileName = langsSelectionModel.selectedItemProperty().getValue();
 
         if (selectFileName != null) {
 
             if (!Files.isDirectory(localUserPath.resolve(selectFileName))) {
-//                if (!Files.isDirectory(selectFileName.to))) {
                 dos.writeObject(new FileRequestToServer(selectFileName));
                 dos.flush();
             } else {
@@ -260,16 +276,19 @@ public class ChatController implements Initializable {
         MultipleSelectionModel<String> langsSelectionModel = listView.getSelectionModel();
         String selectFileName = langsSelectionModel.selectedItemProperty().getValue();
 
-        if (selectFileName != null) {
+        if (selectFileName != null || localUserPath != null) {
 
             if (!Files.isDirectory(serverCurrentPath.resolve(selectFileName))) {
                 primaryStage = (Stage) toLocalButton.getScene().getWindow();
                 fileChooser.setInitialFileName(selectFileName);
                 File file = fileChooser.showSaveDialog(primaryStage);
-                localUserPath = Paths.get(file.getParent());
 
-                dos.writeObject(new FileRequestToLocal(selectFileName));
-                dos.flush();
+                if (file != null) {
+                    localUserPath = Paths.get(file.getParent());
+
+                    dos.writeObject(new FileRequestToLocal(selectFileName));
+                    dos.flush();
+                }
             } else {
                 userInput.setText("Can't move directory! Only files!");
             }
@@ -341,12 +360,12 @@ public class ChatController implements Initializable {
 
     public void listViewMouseClicked(MouseEvent mouseEvent) throws Exception {
 
-        if (mouseEvent.getClickCount() == 2) {
+        MultipleSelectionModel<String> langsSelectionModel = listView.getSelectionModel();
+        selectFileName = langsSelectionModel.selectedItemProperty().getValue();
 
-            MultipleSelectionModel<String> langsSelectionModel = listView.getSelectionModel();
-            String selectFileName = langsSelectionModel.selectedItemProperty().getValue();
+        if (selectFileName != null) {
 
-            if (selectFileName != null) {
+            if (mouseEvent.getClickCount() == 2) {
 
                 if (Files.isDirectory(serverCurrentPath.resolve(selectFileName))) {
                     serverCurrentPath = serverCurrentPath.resolve(selectFileName);
@@ -358,8 +377,6 @@ public class ChatController implements Initializable {
             }
         }
     }
-
-
 
     public void logout(ActionEvent actionEvent) throws Exception {
         dos.writeObject(new ListMessage(null));
@@ -416,8 +433,12 @@ public class ChatController implements Initializable {
         primaryStage = (Stage) addDirButton.getScene().getWindow();
         File file = directoryChooser.showDialog(primaryStage);
         localUserPath = Paths.get(String.valueOf(file));
-        dos.writeObject(new LocalListMessage(localUserPath));
-        dos.flush();
+
+        if (localUserPath != null) {
+            dos.writeObject(new LocalListMessage(localUserPath));
+            dos.flush();
+        }
+
     }
 
     private void openFile(File file) {
@@ -476,11 +497,14 @@ public class ChatController implements Initializable {
                 }
             }
         }
-
         langsSelectionModel.clearSelection();
     }
 
-//    public void info(ContextMenuEvent contextMenuEvent) {
-//        System.out.println(contextMenuEvent.toString());
-//    }
+    public void contextMenuOpen(ActionEvent actionEvent) throws IOException {
+        if (selectFileName != null || serverCurrentPath != null) {
+            dos.writeObject(new OpenFile(serverCurrentPath.resolve(selectFileName)));
+            dos.flush();
+        }
+
+    }
 }

@@ -1,11 +1,9 @@
 package com.geekbrains.model;
 
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class LocalListMessage extends AbstractMessage {
     private List<String> files;
