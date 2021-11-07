@@ -14,5 +14,6 @@ public enum Operation {
     LOGIN,
     LOGIN_OK,
     EXIT_REQUEST,
+    OPEN_FILE,
     CREATE_FOLDER
 }

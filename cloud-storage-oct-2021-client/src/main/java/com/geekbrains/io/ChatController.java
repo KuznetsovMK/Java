@@ -6,12 +6,20 @@ import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
+import javafx.scene.control.Button;
+import javafx.scene.control.TextField;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.TextFieldListCell;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
 
+import java.awt.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -42,33 +50,70 @@ public class ChatController implements Initializable {
     public Button toServerButton;
     public Button deleteButton;
     public Button backButton;
-    public Button newFolder;
+    public Button newFolderButton;
+    public Button addDirButton;
+    public ContextMenu contextMenu;
     private Socket socket;
     private ObjectDecoderInputStream dis;
     private ObjectEncoderOutputStream dos;
     private Path localUserPath;
     private Path serverCurrentPath;
+    private FileChooser fileChooser;
+    private DirectoryChooser directoryChooser;
+    private Stage primaryStage;
+    private Desktop desktop;
+    private String selectFileName;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
 
         try {
+            Image imgAddDirButton = new Image("com/geekbrains/io/img/add_24.png");
+            addDirButton.graphicProperty().setValue(new ImageView(imgAddDirButton));
+            addDirButton.setTooltip(new Tooltip("Add files"));
+            Image imgToServerButton = new Image("com/geekbrains/io/img/upload_24.png");
+            toServerButton.graphicProperty().setValue(new ImageView(imgToServerButton));
+            toServerButton.setTooltip(new Tooltip("Upload file"));
+            Image imgDeleteButton = new Image("com/geekbrains/io/img/del_24.png");
+            deleteButton.graphicProperty().setValue(new ImageView(imgDeleteButton));
+            deleteButton.setTooltip(new Tooltip("Delete file"));
+            Image imgToLocalButton = new Image("com/geekbrains/io/img/download_24.png");
+            toLocalButton.graphicProperty().setValue(new ImageView(imgToLocalButton));
+            toLocalButton.setTooltip(new Tooltip("Download file"));
+            Image imgNewFolderButton = new Image("com/geekbrains/io/img/newFolder_24.png");
+            newFolderButton.graphicProperty().setValue(new ImageView(imgNewFolderButton));
+            newFolderButton.setTooltip(new Tooltip("Create new folder"));
+            Image imgBackButton = new Image("com/geekbrains/io/img/back_24.png");
+            backButton.graphicProperty().setValue(new ImageView(imgBackButton));
+            backButton.setTooltip(new Tooltip("Back"));
+
+            fileChooser = new FileChooser();
+            directoryChooser = new DirectoryChooser();
+            desktop = Desktop.getDesktop();
+
+//            cm = new ContextMenu();
+//            MenuItem menuItem1 = new MenuItem("Open");
+//            menuItem1.addEventHandler(MouseEvent.ANY, new EventHandler<MouseEvent>() {
+//                @Override
+//                public void handle(MouseEvent event) {
+//                    System.out.println(event.toString());
+//                    System.out.println("addEventHandler");
+//                    if (event.getButton() == MouseButton.PRIMARY) {
+//                        System.out.println("openFile()" );
+//                    }
+//
+//                }
+//            });
+//            MenuItem menuItem2 = new MenuItem("Delete");
+//            MenuItem menuItem3 = new MenuItem("Download");
+//            cm.getItems().addAll(menuItem1, menuItem2, menuItem3);
+
             socket = new Socket("localhost", 8189);
             dos = new ObjectEncoderOutputStream(socket.getOutputStream());
             dis = new ObjectDecoderInputStream(socket.getInputStream());
             System.out.println("OK");
 
             listView.setCellFactory(TextFieldListCell.forListView());
-
-            localUserPath = Paths.get("localroot");
-            localPathField.setText("localroot");
-
-            File userLocalFile = new File(String.valueOf(localUserPath));
-            String[] userLocalFiles = userLocalFile.list();
-
-            for (String str : userLocalFiles) {
-                userlistView.getItems().add(str);
-            }
 
             Thread readThread = new Thread(() -> {
 
@@ -91,6 +136,7 @@ public class ChatController implements Initializable {
 //            e.printStackTrace();
         }
     }
+
 
     private void checkMsg(AbstractMessage msg) throws Exception {
         log.debug("checkMsg {}", msg);
@@ -115,6 +161,11 @@ public class ChatController implements Initializable {
 
                 LocalListMessage localListMessage = (LocalListMessage) msg;
 
+                log.debug(localListMessage.getPathName());
+
+                localPathField.clear();
+                localPathField.setText(localListMessage.getPathName());
+
                 Platform.runLater(() -> {
                     userlistView.getItems().clear();
                     userlistView.getItems().addAll(localListMessage.getFiles());
@@ -124,6 +175,8 @@ public class ChatController implements Initializable {
             case FILE_MESSAGE_TO_LOCAL:
 
                 FileMessageToLocal fileMessageToLocal = (FileMessageToLocal) msg;
+                log.debug(String.valueOf(fileMessageToLocal));
+
                 Path file = localUserPath.resolve(fileMessageToLocal.getName());
 
                 if (fileMessageToLocal.isFirstButch()) {
@@ -190,7 +243,13 @@ public class ChatController implements Initializable {
                 toServerButton.setVisible(true);
                 deleteButton.setVisible(true);
                 backButton.setVisible(true);
-                newFolder.setVisible(true);
+                newFolderButton.setVisible(true);
+                addDirButton.setVisible(true);
+                break;
+
+            case OPEN_FILE:
+                OpenFile of = (OpenFile) msg;
+                openFile(new File(of.getPath()));
                 break;
         }
     }
@@ -217,11 +276,19 @@ public class ChatController implements Initializable {
         MultipleSelectionModel<String> langsSelectionModel = listView.getSelectionModel();
         String selectFileName = langsSelectionModel.selectedItemProperty().getValue();
 
-        if (selectFileName != null) {
+        if (selectFileName != null || localUserPath != null) {
 
             if (!Files.isDirectory(serverCurrentPath.resolve(selectFileName))) {
-                dos.writeObject(new FileRequestToLocal(selectFileName));
-                dos.flush();
+                primaryStage = (Stage) toLocalButton.getScene().getWindow();
+                fileChooser.setInitialFileName(selectFileName);
+                File file = fileChooser.showSaveDialog(primaryStage);
+
+                if (file != null) {
+                    localUserPath = Paths.get(file.getParent());
+
+                    dos.writeObject(new FileRequestToLocal(selectFileName));
+                    dos.flush();
+                }
             } else {
                 userInput.setText("Can't move directory! Only files!");
             }
@@ -267,7 +334,6 @@ public class ChatController implements Initializable {
 
     public void newFolder(ActionEvent actionEvent) throws IOException {
 
-//        dos.writeObject(new CreateNewFolder(serverCurrentPath.toString()));
         dos.writeObject(new CreateNewFolder(serverCurrentPath.toString()));
         dos.flush();
     }
@@ -294,12 +360,12 @@ public class ChatController implements Initializable {
 
     public void listViewMouseClicked(MouseEvent mouseEvent) throws Exception {
 
-        if (mouseEvent.getClickCount() == 2) {
+        MultipleSelectionModel<String> langsSelectionModel = listView.getSelectionModel();
+        selectFileName = langsSelectionModel.selectedItemProperty().getValue();
 
-            MultipleSelectionModel<String> langsSelectionModel = listView.getSelectionModel();
-            String selectFileName = langsSelectionModel.selectedItemProperty().getValue();
+        if (selectFileName != null) {
 
-            if (selectFileName != null) {
+            if (mouseEvent.getClickCount() == 2) {
 
                 if (Files.isDirectory(serverCurrentPath.resolve(selectFileName))) {
                     serverCurrentPath = serverCurrentPath.resolve(selectFileName);
@@ -310,36 +376,6 @@ public class ChatController implements Initializable {
                 dos.flush();
             }
         }
-    }
-
-    public void keyPressed(KeyEvent keyEvent) throws Exception {
-
-        MultipleSelectionModel<String> langsSelectionModel = listView.getSelectionModel();
-        String selectFileName = langsSelectionModel.selectedItemProperty().getValue();
-
-        if (selectFileName != null) {
-
-            if (keyEvent.getCode().toString().equals("ENTER")) {
-
-                if (Files.isDirectory(serverCurrentPath.resolve(selectFileName))) {
-                    serverCurrentPath = serverCurrentPath.resolve(selectFileName);
-                    dos.writeObject(new ListMessage(serverCurrentPath));
-                    dos.flush();
-                }
-            }
-            if (keyEvent.getCode().toString().equals("DELETE")) {
-                dos.writeObject(new DeleteFile(selectFileName));
-                dos.flush();
-            }
-        }
-        if (keyEvent.getCode().toString().equals("BACK_SPACE")) {
-
-            if (serverCurrentPath.getParent() != null) {
-                dos.writeObject(new ListMessage(serverCurrentPath.getParent()));
-                dos.flush();
-            }
-        }
-        langsSelectionModel.clearSelection();
     }
 
     public void logout(ActionEvent actionEvent) throws Exception {
@@ -362,7 +398,8 @@ public class ChatController implements Initializable {
         toServerButton.setVisible(false);
         deleteButton.setVisible(false);
         backButton.setVisible(false);
-        newFolder.setVisible(false);
+        addDirButton.setVisible(false);
+        newFolderButton.setVisible(false);
     }
 
     public void disconnect() {
@@ -389,5 +426,85 @@ public class ChatController implements Initializable {
                 e.printStackTrace();
             }
         }
+    }
+
+    public void chooseDir(ActionEvent actionEvent) throws Exception {
+
+        primaryStage = (Stage) addDirButton.getScene().getWindow();
+        File file = directoryChooser.showDialog(primaryStage);
+        localUserPath = Paths.get(String.valueOf(file));
+
+        if (localUserPath != null) {
+            dos.writeObject(new LocalListMessage(localUserPath));
+            dos.flush();
+        }
+
+    }
+
+    private void openFile(File file) {
+
+        try {
+            this.desktop.open(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void keyPressedServerListView(KeyEvent keyEvent) throws Exception {
+
+        MultipleSelectionModel<String> langsSelectionModel = listView.getSelectionModel();
+        String selectFileName = langsSelectionModel.selectedItemProperty().getValue();
+
+        if (selectFileName != null) {
+
+            if (keyEvent.getCode().toString().equals("ENTER")) {
+
+                if (Files.isDirectory(serverCurrentPath.resolve(selectFileName))) {
+                    serverCurrentPath = serverCurrentPath.resolve(selectFileName);
+                    dos.writeObject(new ListMessage(serverCurrentPath));
+                    dos.flush();
+                } else {
+                    openFile(serverCurrentPath.resolve(selectFileName).toFile());
+                }
+            }
+            if (keyEvent.getCode().toString().equals("DELETE")) {
+                dos.writeObject(new DeleteFile(selectFileName));
+                dos.flush();
+            }
+        }
+        if (keyEvent.getCode().toString().equals("BACK_SPACE")) {
+
+            if (serverCurrentPath.getParent() != null) {
+                dos.writeObject(new ListMessage(serverCurrentPath.getParent()));
+                dos.flush();
+            }
+        }
+        langsSelectionModel.clearSelection();
+    }
+
+
+    public void keyPressedLocalListView(KeyEvent keyEvent) {
+
+        MultipleSelectionModel<String> langsSelectionModel = userlistView.getSelectionModel();
+        String selectFileName = langsSelectionModel.selectedItemProperty().getValue();
+
+        if (selectFileName != null) {
+
+            if (keyEvent.getCode().toString().equals("ENTER")) {
+
+                if (!Files.isDirectory(localUserPath.resolve(selectFileName))) {
+                    openFile(localUserPath.resolve(selectFileName).toFile());
+                }
+            }
+        }
+        langsSelectionModel.clearSelection();
+    }
+
+    public void contextMenuOpen(ActionEvent actionEvent) throws IOException {
+        if (selectFileName != null || serverCurrentPath != null) {
+            dos.writeObject(new OpenFile(serverCurrentPath.resolve(selectFileName)));
+            dos.flush();
+        }
+
     }
 }
